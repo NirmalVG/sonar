@@ -119,6 +119,7 @@ export function BottomControls() {
     telemetry,
     handGesture,
     handTrackingActive,
+    handTrackingLoading,
     toggleHandTracking,
     uiVisible,
     toggleUi,
@@ -233,7 +234,17 @@ export function BottomControls() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <StatusPill label="DENSITY" value={particleCount > 150000 ? "MAX" : particleCount > 80000 ? "HIGH" : "LIGHT"} active />
           <StatusPill label="GESTURE" value={handGesture} active={handGesture !== "NONE"} />
-          <StatusPill label="TRACKING" value={handTrackingActive ? "LIVE" : "OFF"} active={handTrackingActive} />
+          <StatusPill
+            label="TRACKING"
+            value={
+              handTrackingLoading
+                ? "LOADING"
+                : handTrackingActive
+                  ? "LIVE"
+                  : "OFF"
+            }
+            active={handTrackingActive || handTrackingLoading}
+          />
         </div>
       </div>
     ),
@@ -290,11 +301,12 @@ export function BottomControls() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <button
             onClick={toggleHandTracking}
+            disabled={handTrackingLoading}
             className={`rounded-2xl border px-4 py-4 text-left transition-all ${
-              handTrackingActive
+              handTrackingActive || handTrackingLoading
                 ? "border-[#00d8ff]/50 bg-[#00d8ff]/10 text-[#00d8ff]"
                 : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
-            }`}
+            } ${handTrackingLoading ? "cursor-wait opacity-85" : ""}`}
           >
             <div className="flex items-center gap-3">
               <Hand className="h-4 w-4" />
@@ -303,7 +315,11 @@ export function BottomControls() {
               </span>
             </div>
             <div className="mt-3 text-xs font-mono">
-              {handTrackingActive ? "ENABLED" : "DISABLED"}
+              {handTrackingLoading
+                ? "STARTING..."
+                : handTrackingActive
+                  ? "ENABLED"
+                  : "DISABLED"}
             </div>
           </button>
           <button

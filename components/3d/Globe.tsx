@@ -7,6 +7,12 @@ import { useSonarStore } from "@/store/useSonarStore"
 
 const MAX_PARTICLES = 180000
 const OFFSCREEN = new THREE.Vector3(999, 999, 999)
+const MAX_HAND_X = 9
+const MAX_HAND_Y = 6
+const MAX_HAND_Z = 3
+const MAX_SCENE_OFFSET_X = 4.2
+const MAX_SCENE_OFFSET_Y = 3
+const MAX_OPEN_OFFSET = 4.5
 
 const vertexShader = `
   uniform float uTime;
@@ -128,6 +134,7 @@ export function Globe() {
   const handVelocityRef = useRef(new THREE.Vector3())
   const openOffsetRef = useRef(new THREE.Vector3())
   const sceneOffsetRef = useRef(new THREE.Vector3())
+  const wasHandDetectedRef = useRef(false)
 
   const {
     particleCount,
@@ -228,10 +235,11 @@ export function Globe() {
     if (!materialRef.current) return
 
     materialRef.current.uniforms.uRadius.value = globeRadius
-    materialRef.current.uniforms.uColorBottom.value = colors.bottom
-    materialRef.current.uniforms.uColorTop.value = colors.top
+    materialRef.current.uniforms.uColorBottom.value.copy(colors.bottom)
+    materialRef.current.uniforms.uColorTop.value.copy(colors.top)
     materialRef.current.uniforms.uInteractionStrength.value = interactionStrength
-  }, [globeRadius, colors, interactionStrength])
+    materialRef.current.uniformsNeedUpdate = true
+  }, [colors, globeRadius, interactionStrength, uniforms])
 
   useEffect(() => {
     if (!geometryRef.current) return
@@ -244,16 +252,30 @@ export function Globe() {
 
     const storeState = useSonarStore.getState()
     const handDetected = storeState.handPosition.distanceToSquared(OFFSCREEN) > 1
-    const targetHand = handDetected ? storeState.handPosition : OFFSCREEN
+    const targetHand = handDetected
+      ? new THREE.Vector3(
+          THREE.MathUtils.clamp(storeState.handPosition.x, -MAX_HAND_X, MAX_HAND_X),
+          THREE.MathUtils.clamp(storeState.handPosition.y, -MAX_HAND_Y, MAX_HAND_Y),
+          THREE.MathUtils.clamp(storeState.handPosition.z, -MAX_HAND_Z, MAX_HAND_Z),
+        )
+      : OFFSCREEN
 
-    smoothedHandRef.current.lerp(targetHand, handDetected ? 0.09 : 0.18)
+    if (handDetected !== wasHandDetectedRef.current) {
+      smoothedHandRef.current.copy(targetHand)
+      previousHandRef.current.copy(targetHand)
+      handVelocityRef.current.set(0, 0, 0)
+      wasHandDetectedRef.current = handDetected
+    } else {
+      smoothedHandRef.current.lerp(targetHand, handDetected ? 0.09 : 0.18)
 
-    handVelocityRef.current
-      .copy(smoothedHandRef.current)
-      .sub(previousHandRef.current)
-      .multiplyScalar(0.38)
+      handVelocityRef.current
+        .copy(smoothedHandRef.current)
+        .sub(previousHandRef.current)
+        .clampLength(0, 1.25)
+        .multiplyScalar(0.38)
 
-    previousHandRef.current.copy(smoothedHandRef.current)
+      previousHandRef.current.copy(smoothedHandRef.current)
+    }
 
     materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
     materialRef.current.uniforms.uHandPosition.value.copy(smoothedHandRef.current)
@@ -268,13 +290,24 @@ export function Globe() {
     const scatterTarget = storeState.handGesture === "OPEN" ? 1 : 0
     const openOffsetTarget =
       scatterTarget && handDetected
-        ? smoothedHandRef.current.clone().multiplyScalar(0.45)
+        ? smoothedHandRef.current
+            .clone()
+            .multiplyScalar(0.45)
+            .clampLength(0, MAX_OPEN_OFFSET)
         : new THREE.Vector3()
     const sceneTarget =
       scatterTarget && handDetected
         ? new THREE.Vector3(
-            smoothedHandRef.current.x * 0.55,
-            smoothedHandRef.current.y * 0.45,
+            THREE.MathUtils.clamp(
+              smoothedHandRef.current.x * 0.55,
+              -MAX_SCENE_OFFSET_X,
+              MAX_SCENE_OFFSET_X,
+            ),
+            THREE.MathUtils.clamp(
+              smoothedHandRef.current.y * 0.45,
+              -MAX_SCENE_OFFSET_Y,
+              MAX_SCENE_OFFSET_Y,
+            ),
             0,
           )
         : new THREE.Vector3()
@@ -313,6 +346,7 @@ export function Globe() {
       </bufferGeometry>
 
       <shaderMaterial
+        key={colorScheme}
         ref={materialRef}
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}

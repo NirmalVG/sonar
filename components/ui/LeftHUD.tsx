@@ -8,7 +8,7 @@ export function LeftHUD() {
   const telemetry = useSonarStore((state) => state.telemetry)
 
   return (
-    <div className="absolute left-3 top-20 z-40 flex w-[calc(100%-1.5rem)] max-w-80 flex-col gap-4 pointer-events-none sm:left-8 sm:top-1/2 sm:w-80 sm:-translate-y-1/2 sm:gap-6">
+    <div className="flex w-full max-w-80 flex-col gap-4 pointer-events-none sm:gap-6">
       {/* SYSTEM DIAGNOSTICS PANEL */}
       <GlassPanel className="p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between text-white/50 sm:mb-6">

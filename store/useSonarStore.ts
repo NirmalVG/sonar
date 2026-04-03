@@ -8,6 +8,8 @@ export type Gesture = "OPEN" | "FIST" | "NONE"
 interface SonarState {
   // Global UI & Tracking State
   handTrackingActive: boolean
+  handTrackingLoading: boolean
+  setHandTrackingLoading: (loading: boolean) => void
   toggleHandTracking: () => void
   uiVisible: boolean
   toggleUi: () => void
@@ -43,6 +45,8 @@ interface SonarState {
 export const useSonarStore = create<SonarState>((set) => ({
   // Global UI & Tracking State
   handTrackingActive: false,
+  handTrackingLoading: false,
+  setHandTrackingLoading: (handTrackingLoading) => set({ handTrackingLoading }),
   toggleHandTracking: () =>
     set((state) => ({ handTrackingActive: !state.handTrackingActive })),
 

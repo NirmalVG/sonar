@@ -19,12 +19,15 @@ export default function Home() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#1a2035] via-[#0a0a1a] to-black">
         <Canvas
           camera={{ position: [0, 0, 15], fov: 45 }}
-          gl={{ preserveDrawingBuffer: true }} // <--- ADD THIS
+          gl={{ preserveDrawingBuffer: true }}
         >
           <OrbitControls enableZoom={false} enablePan={false} />
           <Globe />
         </Canvas>
       </div>
+
+      <HandTracker />
+      {!uiVisible && <RightHUD />}
 
       {/* UI OVERLAY LAYER */}
       <div
@@ -32,10 +35,15 @@ export default function Home() {
           uiVisible ? "opacity-100" : "opacity-0"
         }`}
       >
-        <TopNav />
-        <LeftHUD />
-        <HandTracker />
-        <RightHUD />
+        <div className="absolute inset-x-3 top-3 z-50 sm:inset-x-6 sm:top-6 lg:inset-x-8">
+          <TopNav />
+        </div>
+
+        <div className="absolute inset-x-3 top-24 z-40 flex flex-col gap-4 sm:inset-x-6 sm:top-28 md:top-32 lg:inset-x-8 lg:top-1/2 lg:-translate-y-1/2 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <LeftHUD />
+          <RightHUD />
+        </div>
+
         <BottomControls />
       </div>
     </main>

@@ -6,10 +6,22 @@ import { HandLandmarker, FilesetResolver } from "@mediapipe/tasks-vision"
 import { useSonarStore, type Gesture } from "@/store/useSonarStore"
 
 type HandPoint = { x: number; y: number }
+const OFFSCREEN_HAND = new THREE.Vector3(999, 999, 999)
+const REQUIRED_LANDMARKS = [0, 5, 8, 9, 12, 13, 16, 17, 20] as const
 
 // Helper math function to calculate the 2D distance between two hand joints
 const getDistance = (p1: HandPoint, p2: HandPoint) =>
   Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2)
+
+const isFinitePoint = (point: HandPoint | undefined) =>
+  Boolean(
+    point &&
+      Number.isFinite(point.x) &&
+      Number.isFinite(point.y),
+  )
+
+const clampNormalized = (value: number) =>
+  THREE.MathUtils.clamp(value, -0.15, 1.15)
 
 export function HandTracker() {
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -18,8 +30,13 @@ export function HandTracker() {
   const gestureFramesRef = useRef(0)
 
   // Bring in all our necessary setters from Zustand
-  const { setHandPosition, setTelemetry, handTrackingActive, setHandGesture } =
-    useSonarStore()
+  const {
+    setHandPosition,
+    setTelemetry,
+    handTrackingActive,
+    setHandGesture,
+    setHandTrackingLoading,
+  } = useSonarStore()
 
   useEffect(() => {
     if (!handTrackingActive || !videoRef.current) return
@@ -27,6 +44,8 @@ export function HandTracker() {
 
     let isTracking = true
     let handLandmarker: HandLandmarker | null = null
+
+    setHandTrackingLoading(true)
 
     const commitGesture = (nextGesture: Gesture) => {
       if (gestureCandidateRef.current === nextGesture) {
@@ -68,6 +87,7 @@ export function HandTracker() {
         if (isTracking) {
           videoElement.srcObject = stream
           await videoElement.play()
+          setHandTrackingLoading(false)
 
           // 4. The High-Performance Prediction Loop
           const predictFrame = () => {
@@ -82,11 +102,24 @@ export function HandTracker() {
 
               if (results.landmarks && results.landmarks.length > 0) {
                 const hand = results.landmarks[0]
+                const hasValidHand = REQUIRED_LANDMARKS.every((index) =>
+                  isFinitePoint(hand[index]),
+                )
+
+                if (!hasValidHand) {
+                  setHandPosition(OFFSCREEN_HAND.clone())
+                  commitGesture("NONE")
+                  requestRef.current = requestAnimationFrame(predictFrame)
+                  return
+                }
+
                 const palm = hand[9] // Center of palm (base of middle finger)
+                const normalizedX = clampNormalized(palm.x)
+                const normalizedY = clampNormalized(palm.y)
 
                 // Map the normalized hand position into the visible dust field.
-                const x = -(palm.x - 0.5) * 18
-                const y = -(palm.y - 0.5) * 12
+                const x = THREE.MathUtils.clamp(-(normalizedX - 0.5) * 18, -9, 9)
+                const y = THREE.MathUtils.clamp(-(normalizedY - 0.5) * 12, -6, 6)
                 const z = 1.5
 
                 // Send position to GPU via Zustand
@@ -119,7 +152,7 @@ export function HandTracker() {
                 }
               } else {
                 // Hand is off-screen
-                setHandPosition(new THREE.Vector3(999, 999, 999))
+                setHandPosition(OFFSCREEN_HAND.clone())
                 commitGesture("NONE")
               }
             }
@@ -133,6 +166,8 @@ export function HandTracker() {
         }
       } catch (error) {
         console.error("Error initializing Sonar Hand Tracking:", error)
+        setHandTrackingLoading(false)
+        useSonarStore.setState({ handTrackingActive: false })
       }
     }
 
@@ -157,10 +192,17 @@ export function HandTracker() {
       // Reset state safely
       gestureCandidateRef.current = "NONE"
       gestureFramesRef.current = 0
-      setHandPosition(new THREE.Vector3(999, 999, 999))
+      setHandPosition(OFFSCREEN_HAND.clone())
       setHandGesture("NONE")
+      setHandTrackingLoading(false)
     }
-  }, [handTrackingActive, setHandPosition, setTelemetry, setHandGesture])
+  }, [
+    handTrackingActive,
+    setHandPosition,
+    setTelemetry,
+    setHandGesture,
+    setHandTrackingLoading,
+  ])
 
   return <video ref={videoRef} className="hidden" playsInline muted />
 }
