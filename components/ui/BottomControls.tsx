@@ -401,7 +401,7 @@ export function BottomControls() {
   } satisfies Record<PanelId, React.ReactNode>
 
   return (
-    <div className="absolute bottom-3 left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-[980px] -translate-x-1/2 flex-col items-center gap-3 px-2 sm:bottom-8 sm:w-[calc(100%-2rem)] sm:gap-6 sm:px-0 pointer-events-none">
+    <div className="absolute left-1/2 top-[75vh] z-40 flex w-[calc(100%-1rem)] max-w-[980px] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 px-2 sm:top-auto sm:bottom-8 sm:w-[calc(100%-2rem)] sm:translate-y-0 sm:gap-6 sm:px-0 pointer-events-none">
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
