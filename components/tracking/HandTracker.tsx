@@ -23,6 +23,33 @@ const isFinitePoint = (point: HandPoint | undefined) =>
 const clampNormalized = (value: number) =>
   THREE.MathUtils.clamp(value, -0.15, 1.15)
 
+const createHandLandmarker = async () => {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm",
+  )
+
+  return HandLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+      delegate: "GPU",
+    },
+    runningMode: "VIDEO",
+    numHands: 1,
+  })
+}
+
+let handLandmarkerPromise: Promise<HandLandmarker> | null = null
+
+const getHandLandmarker = () => {
+  handLandmarkerPromise ??= createHandLandmarker().catch((error) => {
+    handLandmarkerPromise = null
+    throw error
+  })
+
+  return handLandmarkerPromise
+}
+
 export function HandTracker() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const requestRef = useRef<number | null>(null)
@@ -37,6 +64,26 @@ export function HandTracker() {
     setHandGesture,
     setHandTrackingLoading,
   } = useSonarStore()
+
+  useEffect(() => {
+    const preloadHandTracking = () => {
+      void getHandLandmarker().catch((error) => {
+        console.error("Error preloading Sonar Hand Tracking:", error)
+      })
+    }
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(preloadHandTracking, {
+        timeout: 2500,
+      })
+
+      return () => window.cancelIdleCallback(idleId)
+    }
+
+    const timeoutId = globalThis.setTimeout(preloadHandTracking, 1200)
+
+    return () => globalThis.clearTimeout(timeoutId)
+  }, [])
 
   useEffect(() => {
     if (!handTrackingActive || !videoRef.current) return
@@ -63,31 +110,32 @@ export function HandTracker() {
 
     const initializeTracking = async () => {
       try {
-        // 1. Load the modern WebAssembly backend
-        const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm",
-        )
+        const isMobile = window.matchMedia("(max-width: 639px)").matches
+        const videoConstraints: MediaTrackConstraints = isMobile
+          ? {
+              width: { ideal: 360 },
+              height: { ideal: 270 },
+              frameRate: { ideal: 24, max: 30 },
+              facingMode: "user",
+            }
+          : { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
 
-        // 2. Initialize the Hand Landmarker Model (Forced to GPU!)
-        handLandmarker = await HandLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-            delegate: "GPU",
-          },
-          runningMode: "VIDEO",
-          numHands: 1,
-        })
+        // Start the camera permission flow while MediaPipe loads the model.
+        const [stream, createdHandLandmarker] = await Promise.all([
+          navigator.mediaDevices.getUserMedia({ video: videoConstraints }),
+          getHandLandmarker(),
+        ])
 
-        // 3. Start the Webcam natively
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: "user" },
-        })
+        handLandmarker = createdHandLandmarker
 
-        if (isTracking) {
-          videoElement.srcObject = stream
-          await videoElement.play()
-          setHandTrackingLoading(false)
+        if (!isTracking) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
+
+        videoElement.srcObject = stream
+        await videoElement.play()
+        setHandTrackingLoading(false)
 
           // 4. The High-Performance Prediction Loop
           const predictFrame = () => {
@@ -162,8 +210,7 @@ export function HandTracker() {
           }
 
           // Kick off the loop
-          predictFrame()
-        }
+        predictFrame()
       } catch (error) {
         console.error("Error initializing Sonar Hand Tracking:", error)
         setHandTrackingLoading(false)
@@ -185,10 +232,6 @@ export function HandTracker() {
         videoElement.srcObject = null
       }
 
-      if (handLandmarker) {
-        handLandmarker.close()
-      }
-
       // Reset state safely
       gestureCandidateRef.current = "NONE"
       gestureFramesRef.current = 0
@@ -204,5 +247,5 @@ export function HandTracker() {
     setHandTrackingLoading,
   ])
 
-  return <video ref={videoRef} className="hidden" playsInline muted />
+  return <video ref={videoRef} className="hidden" playsInline muted autoPlay />
 }

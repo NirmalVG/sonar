@@ -147,6 +147,10 @@ export function BottomControls() {
     setIsOpen(true)
   }
 
+  const handleHandTrackingToggle = () => {
+    toggleHandTracking()
+  }
+
   const handleCapture = () => {
     const canvas = document.querySelector("canvas")
     if (!canvas) return
@@ -311,7 +315,7 @@ export function BottomControls() {
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <button
-            onClick={toggleHandTracking}
+            onClick={handleHandTrackingToggle}
             disabled={handTrackingLoading}
             className={`hidden rounded-2xl border px-4 py-4 text-left transition-all sm:block ${
               handTrackingActive || handTrackingLoading
@@ -406,13 +410,13 @@ export function BottomControls() {
         {isOpen && (
           <motion.div
             key={activePanel}
-            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.96 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ type: "spring", damping: 24, stiffness: 280 }}
-            className="w-full pointer-events-auto"
+            className="absolute bottom-[calc(100%+0.75rem)] left-0 w-full pointer-events-auto sm:static"
           >
-            <GlassPanel className="max-h-[62vh] overflow-y-auto border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))] p-4 sm:max-h-none sm:overflow-visible sm:p-6 lg:p-8">
+            <GlassPanel className="max-h-[52vh] overflow-y-auto border-white/15 bg-[linear-gradient(180deg,rgba(8,18,28,0.88),rgba(2,8,14,0.76))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:max-h-none sm:overflow-visible sm:bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))] sm:p-6 sm:shadow-none lg:p-8">
               <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="text-[10px] font-mono tracking-[0.24em] text-[#00d8ff]">
@@ -426,6 +430,28 @@ export function BottomControls() {
                   REAL_TIME TUNING
                 </div>
               </div>
+              <div className="mb-5 grid grid-cols-2 gap-2 sm:hidden">
+                {dockItems.map((item) => {
+                  const isActive = activePanel === item.id
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => openPanel(item.id)}
+                      className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-3 transition-all ${
+                        isActive
+                          ? "border-[#00d8ff]/60 bg-[#00d8ff]/14 text-[#00d8ff]"
+                          : "border-white/12 bg-white/8 text-white/70"
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-[8px] font-mono tracking-widest">
+                        {item.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
               {panelContent[activePanel]}
             </GlassPanel>
           </motion.div>
@@ -435,13 +461,12 @@ export function BottomControls() {
       <GlassPanel className="flex w-full flex-wrap items-center justify-center gap-2 rounded-[28px] border-[#00d8ff]/25 bg-black/55 p-2 shadow-[0_18px_50px_rgba(0,0,0,0.55),0_0_34px_rgba(0,216,255,0.16)] pointer-events-auto sm:w-auto sm:rounded-full sm:border-white/10 sm:bg-white/5 sm:shadow-none">
         {dockItems.map((item) => {
           const isActive = activePanel === item.id
-          const optionalMobileClass = isOpen ? "flex" : "hidden sm:flex"
 
           return (
             <button
               key={item.id}
               onClick={() => openPanel(item.id)}
-              className={`${optionalMobileClass} min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:w-[72px] sm:flex-none sm:rounded-full ${
+              className={`hidden min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:flex sm:w-[72px] sm:flex-none sm:rounded-full ${
                 isActive && isOpen
                   ? "bg-[#00d8ff]/10 text-[#00d8ff] shadow-[inset_0_0_20px_rgba(0,216,255,0.2)]"
                   : "text-white/55 hover:text-white"
@@ -456,7 +481,7 @@ export function BottomControls() {
         })}
 
         <button
-          onClick={toggleHandTracking}
+          onClick={handleHandTrackingToggle}
           disabled={handTrackingLoading}
           className={`flex min-w-[96px] flex-1 flex-col items-center gap-1.5 rounded-2xl border px-4 py-4 transition-all sm:hidden ${
             handTrackingActive || handTrackingLoading
