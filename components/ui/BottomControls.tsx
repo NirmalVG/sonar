@@ -432,7 +432,7 @@ export function BottomControls() {
         )}
       </AnimatePresence>
 
-      <GlassPanel className="flex w-full flex-wrap items-center justify-center gap-2 rounded-[28px] p-2 pointer-events-auto sm:w-auto sm:rounded-full">
+      <GlassPanel className="flex w-full flex-wrap items-center justify-center gap-2 rounded-[28px] border-[#00d8ff]/25 bg-black/55 p-2 shadow-[0_18px_50px_rgba(0,0,0,0.55),0_0_34px_rgba(0,216,255,0.16)] pointer-events-auto sm:w-auto sm:rounded-full sm:border-white/10 sm:bg-white/5 sm:shadow-none">
         {dockItems.map((item) => {
           const isActive = activePanel === item.id
           const optionalMobileClass = isOpen ? "flex" : "hidden sm:flex"
@@ -458,32 +458,32 @@ export function BottomControls() {
         <button
           onClick={toggleHandTracking}
           disabled={handTrackingLoading}
-          className={`flex min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:hidden ${
+          className={`flex min-w-[96px] flex-1 flex-col items-center gap-1.5 rounded-2xl border px-4 py-4 transition-all sm:hidden ${
             handTrackingActive || handTrackingLoading
-              ? "bg-[#00d8ff]/10 text-[#00d8ff] shadow-[inset_0_0_20px_rgba(0,216,255,0.2)]"
-              : "text-white/55 hover:text-white"
+              ? "border-[#00d8ff]/70 bg-[#00d8ff]/18 text-[#00d8ff] shadow-[0_0_22px_rgba(0,216,255,0.32),inset_0_0_20px_rgba(0,216,255,0.16)]"
+              : "border-white/20 bg-white/12 text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)] hover:border-[#00d8ff]/40 hover:text-[#00d8ff]"
           } ${handTrackingLoading ? "cursor-wait opacity-85" : ""}`}
         >
           {handTrackingLoading ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
+            <LoaderCircle className="h-5 w-5 animate-spin" />
           ) : (
-            <Hand className="h-4 w-4" />
+            <Hand className="h-5 w-5" />
           )}
-          <span className="text-[8px] font-mono tracking-widest">
+          <span className="text-[9px] font-mono tracking-[0.2em]">
             {handTrackingLoading ? "STARTING" : "HAND"}
           </span>
         </button>
 
         <button
           onClick={() => setIsOpen((current) => !current)}
-          className={`flex min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:w-[72px] sm:flex-none sm:rounded-full ${
+          className={`flex min-w-[96px] flex-1 flex-col items-center gap-1.5 rounded-2xl border px-4 py-4 transition-all sm:w-[72px] sm:flex-none sm:gap-1 sm:rounded-full sm:border-0 sm:p-3 ${
             isOpen
-              ? "bg-[#00d8ff]/10 text-[#00d8ff] shadow-[inset_0_0_20px_rgba(0,216,255,0.2)]"
-              : "text-white/55 hover:text-white"
+              ? "border-[#00d8ff]/70 bg-[#00d8ff]/18 text-[#00d8ff] shadow-[0_0_22px_rgba(0,216,255,0.32),inset_0_0_20px_rgba(0,216,255,0.16)] sm:bg-[#00d8ff]/10 sm:shadow-[inset_0_0_20px_rgba(0,216,255,0.2)]"
+              : "border-white/20 bg-white/12 text-white shadow-[0_10px_24px_rgba(0,0,0,0.28)] hover:border-[#00d8ff]/40 hover:text-[#00d8ff] sm:border-0 sm:bg-transparent sm:text-white/55 sm:shadow-none sm:hover:text-white"
           }`}
         >
-          <Settings2 className="h-4 w-4" />
-          <span className="text-[8px] font-mono tracking-widest">SETTINGS</span>
+          <Settings2 className="h-5 w-5 sm:h-4 sm:w-4" />
+          <span className="text-[9px] font-mono tracking-[0.2em] sm:text-[8px] sm:tracking-widest">SETTINGS</span>
         </button>
       </GlassPanel>
     </div>
