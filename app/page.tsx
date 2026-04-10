@@ -39,7 +39,7 @@ export default function Home() {
           <TopNav />
         </div>
 
-        <div className="absolute inset-x-3 top-24 z-40 flex flex-col gap-4 sm:inset-x-6 sm:top-28 md:top-32 lg:inset-x-8 lg:top-1/2 lg:-translate-y-1/2 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div className="absolute inset-x-3 top-24 z-40 hidden flex-col gap-4 sm:inset-x-6 sm:top-28 md:top-32 lg:inset-x-8 lg:top-1/2 lg:flex lg:-translate-y-1/2 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
           <LeftHUD />
           <RightHUD />
         </div>

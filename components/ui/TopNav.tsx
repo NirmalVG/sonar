@@ -22,7 +22,7 @@ export function TopNav() {
 
       {/* HAND TRACKING TOGGLE */}
       {/* Note: pointer-events-auto ensures this specific panel can be clicked! */}
-      <GlassPanel className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 pointer-events-auto sm:w-auto sm:justify-start sm:gap-4 sm:rounded-full sm:px-5 sm:py-2.5">
+      <GlassPanel className="hidden w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 pointer-events-auto sm:flex sm:w-auto sm:justify-start sm:gap-4 sm:rounded-full sm:px-5 sm:py-2.5">
         {handTrackingLoading ? (
           <LoaderCircle className="w-4 h-4 animate-spin text-[#00d8ff]" />
         ) : (

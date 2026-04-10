@@ -17,6 +17,7 @@ import {
   Moon,
   Hand,
   Eye,
+  LoaderCircle,
   RotateCcw,
   type LucideIcon,
 } from "lucide-react"
@@ -125,7 +126,7 @@ export function BottomControls() {
     toggleUi,
   } = useSonarStore()
 
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const [activePanel, setActivePanel] = useState<PanelId>("particles")
   const [isRecording, setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -205,7 +206,17 @@ export function BottomControls() {
   }
 
   useEffect(() => {
+    const desktopQuery = window.matchMedia("(min-width: 640px)")
+
+    const syncDesktopState = () => {
+      setIsOpen(desktopQuery.matches)
+    }
+
+    syncDesktopState()
+    desktopQuery.addEventListener("change", syncDesktopState)
+
     return () => {
+      desktopQuery.removeEventListener("change", syncDesktopState)
       mediaRecorderRef.current?.stop()
     }
   }, [])
@@ -390,7 +401,7 @@ export function BottomControls() {
   } satisfies Record<PanelId, React.ReactNode>
 
   return (
-    <div className="absolute bottom-4 left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-[980px] -translate-x-1/2 flex-col items-center gap-4 px-2 sm:bottom-8 sm:w-[calc(100%-2rem)] sm:gap-6 sm:px-0 pointer-events-none">
+    <div className="absolute bottom-3 left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-[980px] -translate-x-1/2 flex-col items-center gap-3 px-2 sm:bottom-8 sm:w-[calc(100%-2rem)] sm:gap-6 sm:px-0 pointer-events-none">
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
@@ -401,7 +412,7 @@ export function BottomControls() {
             transition={{ type: "spring", damping: 24, stiffness: 280 }}
             className="w-full pointer-events-auto"
           >
-            <GlassPanel className="border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))] p-4 sm:p-6 lg:p-8">
+            <GlassPanel className="max-h-[62vh] overflow-y-auto border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.03))] p-4 sm:max-h-none sm:overflow-visible sm:p-6 lg:p-8">
               <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="text-[10px] font-mono tracking-[0.24em] text-[#00d8ff]">
@@ -424,12 +435,14 @@ export function BottomControls() {
       <GlassPanel className="flex w-full flex-wrap items-center justify-center gap-2 rounded-[28px] p-2 pointer-events-auto sm:w-auto sm:rounded-full">
         {dockItems.map((item) => {
           const isActive = activePanel === item.id
+          const optionalMobileClass =
+            item.id === "particles" || isOpen ? "flex" : "hidden sm:flex"
 
           return (
             <button
               key={item.id}
               onClick={() => openPanel(item.id)}
-              className={`flex min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:w-[72px] sm:flex-none sm:rounded-full ${
+              className={`${optionalMobileClass} min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:w-[72px] sm:flex-none sm:rounded-full ${
                 isActive && isOpen
                   ? "bg-[#00d8ff]/10 text-[#00d8ff] shadow-[inset_0_0_20px_rgba(0,216,255,0.2)]"
                   : "text-white/55 hover:text-white"
@@ -442,6 +455,25 @@ export function BottomControls() {
             </button>
           )
         })}
+
+        <button
+          onClick={toggleHandTracking}
+          disabled={handTrackingLoading}
+          className={`flex min-w-[72px] flex-1 flex-col items-center gap-1 rounded-2xl p-3 transition-all sm:hidden ${
+            handTrackingActive || handTrackingLoading
+              ? "bg-[#00d8ff]/10 text-[#00d8ff] shadow-[inset_0_0_20px_rgba(0,216,255,0.2)]"
+              : "text-white/55 hover:text-white"
+          } ${handTrackingLoading ? "cursor-wait opacity-85" : ""}`}
+        >
+          {handTrackingLoading ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <Hand className="h-4 w-4" />
+          )}
+          <span className="text-[8px] font-mono tracking-widest">
+            {handTrackingLoading ? "STARTING" : "HAND"}
+          </span>
+        </button>
 
         <button
           onClick={() => setIsOpen((current) => !current)}
