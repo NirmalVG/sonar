@@ -313,7 +313,7 @@ export function BottomControls() {
           <button
             onClick={toggleHandTracking}
             disabled={handTrackingLoading}
-            className={`rounded-2xl border px-4 py-4 text-left transition-all ${
+            className={`hidden rounded-2xl border px-4 py-4 text-left transition-all sm:block ${
               handTrackingActive || handTrackingLoading
                 ? "border-[#00d8ff]/50 bg-[#00d8ff]/10 text-[#00d8ff]"
                 : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:text-white"
@@ -435,8 +435,7 @@ export function BottomControls() {
       <GlassPanel className="flex w-full flex-wrap items-center justify-center gap-2 rounded-[28px] p-2 pointer-events-auto sm:w-auto sm:rounded-full">
         {dockItems.map((item) => {
           const isActive = activePanel === item.id
-          const optionalMobileClass =
-            item.id === "particles" || isOpen ? "flex" : "hidden sm:flex"
+          const optionalMobileClass = isOpen ? "flex" : "hidden sm:flex"
 
           return (
             <button
