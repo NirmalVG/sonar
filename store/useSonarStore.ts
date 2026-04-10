@@ -48,11 +48,7 @@ export const useSonarStore = create<SonarState>((set) => ({
   handTrackingLoading: false,
   setHandTrackingLoading: (handTrackingLoading) => set({ handTrackingLoading }),
   toggleHandTracking: () =>
-    set((state) =>
-      state.handTrackingActive
-        ? { handTrackingActive: false, handTrackingLoading: false }
-        : { handTrackingActive: true, handTrackingLoading: true },
-    ),
+    set((state) => ({ handTrackingActive: !state.handTrackingActive })),
 
   uiVisible: true,
   toggleUi: () => set((state) => ({ uiVisible: !state.uiVisible })),
