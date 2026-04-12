@@ -13,6 +13,7 @@ const MAX_HAND_Z = 3
 const MAX_SCENE_OFFSET_X = 4.2
 const MAX_SCENE_OFFSET_Y = 3
 const MAX_OPEN_OFFSET = 4.5
+const MAX_MAGIC_DRIFT = 8
 
 const vertexShader = `
   uniform float uTime;
@@ -24,6 +25,7 @@ const vertexShader = `
   uniform float uRadius;
   uniform float uHandActive;
   uniform vec3 uOpenOffset;
+  uniform vec3 uMagicDrift;
 
   attribute vec3 aFieldOffset;
   attribute float aSize;
@@ -56,12 +58,16 @@ const vertexShader = `
       ambientWorld.z - uHandPosition.z + 0.0001
     ));
     vec3 flowDirection = normalize(uHandVelocity + vec3(0.0001));
+    vec3 magicDirection = normalize(uMagicDrift + uHandVelocity * 2.0 + vec3(0.0001));
     float directionalFlow = max(dot(safeDirection, flowDirection), 0.0);
+    float magicSpeed = clamp(length(uMagicDrift) * 0.32 + length(uHandVelocity) * 6.0, 0.0, 4.0);
 
     ambientWorld += uHandVelocity * handZone * (1.0 + largeDust * 2.4);
     ambientWorld += flowDirection * uOpenTransition * openHandZone * uInteractionStrength * (0.6 + directionalFlow * (1.2 + largeDust * 1.4));
     ambientWorld += uHandVelocity * uOpenTransition * openHandZone * (0.7 + largeDust * 0.9);
     ambientWorld += safeDirection * uOpenTransition * handZone * uInteractionStrength * (0.35 + aNoise * 1.2);
+    ambientWorld += magicDirection * uOpenTransition * openHandZone * (0.9 + magicSpeed * (0.8 + largeDust * 1.1));
+    ambientWorld += uMagicDrift * uOpenTransition * handZone * (0.08 + aNoise * 0.16);
 
     vec3 clusterLocal = aFieldOffset * (0.45 + uRadius * 0.12);
     clusterLocal += vec3(
@@ -133,6 +139,7 @@ export function Globe() {
   const previousHandRef = useRef(new THREE.Vector3(999, 999, 999))
   const handVelocityRef = useRef(new THREE.Vector3())
   const openOffsetRef = useRef(new THREE.Vector3())
+  const magicDriftRef = useRef(new THREE.Vector3())
   const sceneOffsetRef = useRef(new THREE.Vector3())
   const wasHandDetectedRef = useRef(false)
 
@@ -227,6 +234,7 @@ export function Globe() {
       uOpenTransition: { value: 0.0 },
       uHandActive: { value: 0.0 },
       uOpenOffset: { value: new THREE.Vector3() },
+      uMagicDrift: { value: new THREE.Vector3() },
     }),
     [colors, globeRadius, interactionStrength],
   )
@@ -266,13 +274,13 @@ export function Globe() {
       handVelocityRef.current.set(0, 0, 0)
       wasHandDetectedRef.current = handDetected
     } else {
-      smoothedHandRef.current.lerp(targetHand, handDetected ? 0.09 : 0.18)
+      smoothedHandRef.current.lerp(targetHand, handDetected ? 0.105 : 0.18)
 
       handVelocityRef.current
         .copy(smoothedHandRef.current)
         .sub(previousHandRef.current)
-        .clampLength(0, 1.25)
-        .multiplyScalar(0.38)
+        .clampLength(0, 1.35)
+        .multiplyScalar(0.44)
 
       previousHandRef.current.copy(smoothedHandRef.current)
     }
@@ -288,23 +296,44 @@ export function Globe() {
 
     const clusterTarget = storeState.handGesture === "FIST" ? 1 : 0
     const scatterTarget = storeState.handGesture === "OPEN" ? 1 : 0
+    const velocityStrength = THREE.MathUtils.clamp(
+      handVelocityRef.current.length() * 12,
+      0,
+      1,
+    )
+
+    if (scatterTarget && handDetected) {
+      magicDriftRef.current.addScaledVector(
+        handVelocityRef.current,
+        1.75 + velocityStrength * 1.9,
+      )
+      magicDriftRef.current.lerp(
+        smoothedHandRef.current,
+        0.05 + velocityStrength * 0.065,
+      )
+      magicDriftRef.current.clampLength(0, MAX_MAGIC_DRIFT)
+    } else {
+      magicDriftRef.current.lerp(new THREE.Vector3(), clusterTarget ? 0.08 : 0.14)
+    }
+
     const openOffsetTarget =
       scatterTarget && handDetected
         ? smoothedHandRef.current
             .clone()
-            .multiplyScalar(0.45)
+            .multiplyScalar(0.2)
+            .addScaledVector(magicDriftRef.current, 0.42 + velocityStrength * 0.3)
             .clampLength(0, MAX_OPEN_OFFSET)
         : new THREE.Vector3()
     const sceneTarget =
       scatterTarget && handDetected
         ? new THREE.Vector3(
             THREE.MathUtils.clamp(
-              smoothedHandRef.current.x * 0.55,
+              smoothedHandRef.current.x * 0.28 + magicDriftRef.current.x * 0.36,
               -MAX_SCENE_OFFSET_X,
               MAX_SCENE_OFFSET_X,
             ),
             THREE.MathUtils.clamp(
-              smoothedHandRef.current.y * 0.45,
+              smoothedHandRef.current.y * 0.22 + magicDriftRef.current.y * 0.32,
               -MAX_SCENE_OFFSET_Y,
               MAX_SCENE_OFFSET_Y,
             ),
@@ -320,13 +349,14 @@ export function Globe() {
     materialRef.current.uniforms.uOpenTransition.value = THREE.MathUtils.lerp(
       materialRef.current.uniforms.uOpenTransition.value,
       scatterTarget,
-      0.055,
+      0.062,
     )
-    openOffsetRef.current.lerp(openOffsetTarget, scatterTarget ? 0.07 : 0.12)
+    openOffsetRef.current.lerp(openOffsetTarget, scatterTarget ? 0.078 : 0.12)
     materialRef.current.uniforms.uOpenOffset.value.copy(openOffsetRef.current)
+    materialRef.current.uniforms.uMagicDrift.value.copy(magicDriftRef.current)
 
     if (pointsRef.current) {
-      sceneOffsetRef.current.lerp(sceneTarget, scatterTarget ? 0.06 : 0.1)
+      sceneOffsetRef.current.lerp(sceneTarget, scatterTarget ? 0.068 : 0.1)
       pointsRef.current.position.copy(sceneOffsetRef.current)
       pointsRef.current.rotation.y += delta * rotationSpeed * 0.01
       pointsRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.08) * 0.04
